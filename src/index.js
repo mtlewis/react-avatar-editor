@@ -79,6 +79,10 @@ class AvatarEditor extends React.Component {
     borderRadius: React.PropTypes.number,
     width: React.PropTypes.number,
     height: React.PropTypes.number,
+    initialPosition: React.PropTypes.shape({
+        x: React.PropTypes.number,
+        y: React.PropTypes.number
+    }),
     color: React.PropTypes.arrayOf(React.PropTypes.number),
     style: React.PropTypes.object,
 
@@ -123,6 +127,7 @@ class AvatarEditor extends React.Component {
 
   state = {
     drag: false,
+    firstLoad: true,
     my: null,
     mx: null,
     image: {
@@ -288,9 +293,19 @@ class AvatarEditor extends React.Component {
   handleImageReady (image) {
     const imageState = this.getInitialSize(image.width, image.height)
     imageState.resource = image
-    imageState.x = 0
-    imageState.y = 0
-    this.setState({ drag: false, image: imageState }, this.props.onImageReady)
+
+    if (this.state.firstLoad && this.props.initialPosition) {
+      let widthDiff = ((imageState.width * this.props.scale) - imageState.width) / 2;
+      imageState.x = (widthDiff - (this.props.initialPosition.x * imageState.width * this.props.scale)) / this.props.scale;
+
+      let heightDiff = ((imageState.height * this.props.scale) - imageState.height) / 2;
+      imageState.y = (heightDiff - (this.props.initialPosition.y * imageState.height * this.props.scale)) / this.props.scale;
+    } else {
+      imageState.x = 0;
+      imageState.y = 0;
+    }
+
+    this.setState({ drag: false, firstLoad: false, image: imageState }, this.props.onImageReady)
     this.props.onLoadSuccess(imageState)
   }
 
