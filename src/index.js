@@ -72,6 +72,7 @@ const drawRoundedRect = (context, x, y, width, height, borderRadius) => {
 /* global Image, FileReader */
 class AvatarEditor extends React.Component {
   static propTypes = {
+    controlled: React.PropTypes.bool,
     scale: React.PropTypes.number,
     rotate: React.PropTypes.number,
     image: React.PropTypes.string,
@@ -79,9 +80,11 @@ class AvatarEditor extends React.Component {
     borderRadius: React.PropTypes.number,
     width: React.PropTypes.number,
     height: React.PropTypes.number,
-    initialPosition: React.PropTypes.shape({
+    croppingRect: React.PropTypes.shape({
         x: React.PropTypes.number,
-        y: React.PropTypes.number
+        y: React.PropTypes.number,
+        width: React.PropTypes.number,
+        height: React.PropTypes.number
     }),
     color: React.PropTypes.arrayOf(React.PropTypes.number),
     style: React.PropTypes.object,
@@ -96,6 +99,7 @@ class AvatarEditor extends React.Component {
   }
 
   static defaultProps = {
+    controlled: false,
     scale: 1,
     rotate: 0,
     border: 25,
@@ -117,12 +121,12 @@ class AvatarEditor extends React.Component {
     super(props)
 
     this.setCanvas = ::this.setCanvas
-    this.handleMouseMove = ::this.handleMouseMove
-    this.handleMouseDown = ::this.handleMouseDown
-    this.handleMouseUp = ::this.handleMouseUp
-    this.handleMouseMove = ::this.handleMouseMove
-    this.handleDragOver = ::this.handleDragOver
-    this.handleDrop = ::this.handleDrop
+    // this.handleMouseMove = ::this.handleMouseMove
+    // this.handleMouseDown = ::this.handleMouseDown
+    // this.handleMouseUp = ::this.handleMouseUp
+    // this.handleMouseMove = ::this.handleMouseMove
+    // this.handleDragOver = ::this.handleDragOver
+    // this.handleDrop = ::this.handleDrop
   }
 
   state = {
@@ -165,14 +169,16 @@ class AvatarEditor extends React.Component {
 
   getImage () {
     // get relative coordinates (0 to 1)
-    const cropRect = this.getCroppingRect()
+    const relativeCropRect = this.getCroppingRect()
     const image = this.state.image
 
     // get actual pixel coordinates
-    cropRect.x *= image.resource.width
-    cropRect.y *= image.resource.height
-    cropRect.width *= image.resource.width
-    cropRect.height *= image.resource.height
+    const cropRect = {
+      x: relativeCropRect.x * image.resource.width,
+      y: relativeCropRect.y * image.resource.height,
+      width: relativeCropRect.width * image.resource.width,
+      height: relativeCropRect.height * image.resource.height
+    }
 
     // create a canvas with the correct dimensions
     const canvas = document.createElement('canvas')
@@ -204,12 +210,20 @@ class AvatarEditor extends React.Component {
     canvas.height = height
 
     // don't paint a border here, as it is the resulting image
-    this.paintImage(canvas.getContext('2d'), this.state.image, 0)
+    this.paintImage(canvas.getContext('2d'), 0)
 
     return canvas
   }
 
   getCroppingRect () {
+    if (this.props.controlled) {
+        return {
+            ...this.props.croppingRect,
+            x: Math.min(this.props.croppingRect.x, 1 - this.props.croppingRect.width),
+            y: Math.min(this.props.croppingRect.y, 1 - this.props.croppingRect.height)
+        }
+    }
+
     const dim = this.getDimensions()
 
     const frameRect = {
@@ -277,7 +291,7 @@ class AvatarEditor extends React.Component {
     const context = ReactDOM.findDOMNode(this.canvas).getContext('2d')
     context.clearRect(0, 0, this.getDimensions().canvas.width, this.getDimensions().canvas.height)
     this.paint(context)
-    this.paintImage(context, this.state.image, this.props.border)
+    this.paintImage(context, this.props.border)
 
     if (prevProps.image !== this.props.image ||
         prevProps.scale !== this.props.scale ||
@@ -294,16 +308,16 @@ class AvatarEditor extends React.Component {
     const imageState = this.getInitialSize(image.width, image.height)
     imageState.resource = image
 
-    if (this.state.firstLoad && this.props.initialPosition) {
-      let widthDiff = ((imageState.width * this.props.scale) - imageState.width) / 2;
-      imageState.x = (widthDiff - (this.props.initialPosition.x * imageState.width * this.props.scale)) / this.props.scale;
-
-      let heightDiff = ((imageState.height * this.props.scale) - imageState.height) / 2;
-      imageState.y = (heightDiff - (this.props.initialPosition.y * imageState.height * this.props.scale)) / this.props.scale;
-    } else {
+    // if (this.state.firstLoad && this.props.initialPosition) {
+    //   let widthDiff = ((imageState.width * this.props.scale) - imageState.width) / 2;
+    //   imageState.x = (widthDiff - (this.props.initialPosition.x * imageState.width * this.props.scale)) / this.props.scale;
+    //
+    //   let heightDiff = ((imageState.height * this.props.scale) - imageState.height) / 2;
+    //   imageState.y = (heightDiff - (this.props.initialPosition.y * imageState.height * this.props.scale)) / this.props.scale;
+    // } else {
       imageState.x = 0;
       imageState.y = 0;
-    }
+    // }
 
     this.setState({ drag: false, firstLoad: false, image: imageState }, this.props.onImageReady)
     this.props.onLoadSuccess(imageState)
@@ -335,7 +349,9 @@ class AvatarEditor extends React.Component {
     if (newProps.image && this.props.image !== newProps.image) {
       this.loadImage(newProps.image)
     }
+
     if (
+      (this.props.controlled && !newProps.controlled) ||
       this.props.scale !== newProps.scale ||
       this.props.height !== newProps.height ||
       this.props.width !== newProps.width ||
@@ -345,7 +361,9 @@ class AvatarEditor extends React.Component {
     }
   }
 
-  paintImage (context, image, border) {
+  paintImage (context, border) {
+    let image = this.state.image;
+
     if (image.resource) {
       const position = this.calculatePosition(image, border)
 
@@ -366,13 +384,29 @@ class AvatarEditor extends React.Component {
     image = image || this.state.image
     const dimensions = this.getDimensions()
 
-    const width = image.width * this.props.scale
-    const height = image.height * this.props.scale
+    let x, y, height, width;
 
-    const widthDiff = (width - dimensions.width) / 2
-    const heightDiff = (height - dimensions.height) / 2
-    const x = image.x * this.props.scale - widthDiff + border
-    const y = image.y * this.props.scale - heightDiff + border
+    if (this.props.controlled) {
+        const croppingRect = this.getCroppingRect()
+        width = image.width / croppingRect.width
+        height = image.height / croppingRect.height
+
+        // const widthDiff = (width - dimensions.width) / 2
+        // const heightDiff = (height - dimensions.height) / 2
+
+        // const xMax = 1 - (image.width / width)
+
+        x = border - croppingRect.x * width
+        y = border - croppingRect.y * height
+    } else {
+        width = image.width * this.props.scale
+        height = image.height * this.props.scale
+
+        const widthDiff = (width - dimensions.width) / 2
+        const heightDiff = (height - dimensions.height) / 2
+        x = image.x * this.props.scale - widthDiff + border
+        y = image.y * this.props.scale - heightDiff + border
+    }
 
     return {
       x,
@@ -406,96 +440,98 @@ class AvatarEditor extends React.Component {
     context.restore()
   }
 
-  handleMouseDown (e) {
-    e = e || window.event
-    // if e is a touch event, preventDefault keeps
-    // corresponding mouse events from also being fired
-    // later.
-    e.preventDefault()
-    this.setState({
-      drag: true,
-      mx: null,
-      my: null
-    })
-  }
-  handleMouseUp () {
-    if (this.state.drag) {
-      this.setState({ drag: false })
-      this.props.onMouseUp()
-    }
-  }
-
-  handleMouseMove (e) {
-    e = e || window.event
-    if (this.state.drag === false) {
-      return
-    }
-
-    const imageState = this.state.image
-
-    const lastX = imageState.x
-    const lastY = imageState.y
-
-    const mousePositionX = e.targetTouches ? e.targetTouches[0].pageX : e.clientX
-    const mousePositionY = e.targetTouches ? e.targetTouches[0].pageY : e.clientY
-
-    const newState = {
-      mx: mousePositionX,
-      my: mousePositionY,
-      image: imageState
-    }
-
-    let rotate = this.props.rotate
-
-    rotate %= 360
-    rotate = (rotate < 0) ? rotate + 360 : rotate
-    rotate -= rotate % 90
-
-    const isPortrait = imageState.height > imageState.width
-
-    if (this.state.mx && this.state.my) {
-      const mx = this.state.mx - mousePositionX
-      const my = this.state.my - mousePositionY
-
-      const xDiff = (rotate === 0 || rotate === 180 ? mx : my) / this.props.scale
-      const yDiff = (rotate === 0 || rotate === 180 ? my : mx) / this.props.scale
-
-      let y
-      let x
-
-      if (rotate === 0) {
-        y = lastY - yDiff
-        x = lastX - xDiff
-      }
-
-      if (rotate === 90) {
-        y = lastY + yDiff
-        x = lastX - xDiff
-      }
-
-      if (rotate === 180) {
-        y = lastY + yDiff
-        x = lastX + xDiff
-      }
-
-      if (rotate === 270) {
-        y = lastY - yDiff
-        x = lastX + xDiff
-      }
-
-      imageState.y = this.getBoundedY(y, this.props.scale)
-      imageState.x = this.getBoundedX(x, this.props.scale)
-    }
-
-    this.setState(newState)
-    this.props.onMouseMove()
-  }
+  // handleMouseDown (e) {
+  //   e = e || window.event
+  //   // if e is a touch event, preventDefault keeps
+  //   // corresponding mouse events from also being fired
+  //   // later.
+  //   e.preventDefault()
+  //   this.setState({
+  //     drag: true,
+  //     mx: null,
+  //     my: null
+  //   })
+  // }
+  // handleMouseUp () {
+  //   if (this.state.drag) {
+  //     this.setState({ drag: false })
+  //     this.props.onMouseUp()
+  //   }
+  // }
+  //
+  // handleMouseMove (e) {
+  //   e = e || window.event
+  //   if (this.state.drag === false) {
+  //     return
+  //   }
+  //
+  //   const imageState = this.state.image
+  //
+  //   const lastX = imageState.x
+  //   const lastY = imageState.y
+  //
+  //   const mousePositionX = e.targetTouches ? e.targetTouches[0].pageX : e.clientX
+  //   const mousePositionY = e.targetTouches ? e.targetTouches[0].pageY : e.clientY
+  //
+  //   const newState = {
+  //     mx: mousePositionX,
+  //     my: mousePositionY,
+  //     image: imageState
+  //   }
+  //
+  //   let rotate = this.props.rotate
+  //
+  //   rotate %= 360
+  //   rotate = (rotate < 0) ? rotate + 360 : rotate
+  //   rotate -= rotate % 90
+  //
+  //   const isPortrait = imageState.height > imageState.width
+  //
+  //   if (this.state.mx && this.state.my) {
+  //     const mx = this.state.mx - mousePositionX
+  //     const my = this.state.my - mousePositionY
+  //
+  //     const xDiff = (rotate === 0 || rotate === 180 ? mx : my) / this.props.scale
+  //     const yDiff = (rotate === 0 || rotate === 180 ? my : mx) / this.props.scale
+  //
+  //     let y
+  //     let x
+  //
+  //     if (rotate === 0) {
+  //       y = lastY - yDiff
+  //       x = lastX - xDiff
+  //     }
+  //
+  //     if (rotate === 90) {
+  //       y = lastY + yDiff
+  //       x = lastX - xDiff
+  //     }
+  //
+  //     if (rotate === 180) {
+  //       y = lastY + yDiff
+  //       x = lastX + xDiff
+  //     }
+  //
+  //     if (rotate === 270) {
+  //       y = lastY - yDiff
+  //       x = lastX + xDiff
+  //     }
+  //
+  //     imageState.y = this.getBoundedY(y, this.props.scale)
+  //     imageState.x = this.getBoundedX(x, this.props.scale)
+  //   }
+  //
+  //   this.setState(newState)
+  //   this.props.onMouseMove()
+  // }
 
   squeeze (props) {
-    let imageState = this.state.image
-    imageState.y = this.getBoundedY(imageState.y, props.scale)
-    imageState.x = this.getBoundedX(imageState.x, props.scale)
-    this.setState({ image: imageState })
+    if (!props.controlled) {
+      let imageState = this.state.image
+      imageState.y = this.getBoundedY(imageState.y, props.scale)
+      imageState.x = this.getBoundedX(imageState.x, props.scale)
+      this.setState({ image: imageState })
+    }
   }
 
   getBoundedX (x, scale) {
@@ -517,24 +553,24 @@ class AvatarEditor extends React.Component {
     return Math.max(-heightDiff, Math.min(y, heightDiff))
   }
 
-  handleDragOver (e) {
-    e = e || window.event
-    e.preventDefault()
-  }
+  // handleDragOver (e) {
+  //   e = e || window.event
+  //   e.preventDefault()
+  // }
 
-  handleDrop (e) {
-    e = e || window.event
-    e.stopPropagation()
-    e.preventDefault()
-
-    if (e.dataTransfer && e.dataTransfer.files.length) {
-      this.props.onDropFile(e)
-      const reader = new FileReader()
-      const file = e.dataTransfer.files[0]
-      reader.onload = (e) => this.loadImage(e.target.result)
-      reader.readAsDataURL(file)
-    }
-  }
+  // handleDrop (e) {
+  //   e = e || window.event
+  //   e.stopPropagation()
+  //   e.preventDefault()
+  //
+  //   if (e.dataTransfer && e.dataTransfer.files.length) {
+  //     this.props.onDropFile(e)
+  //     const reader = new FileReader()
+  //     const file = e.dataTransfer.files[0]
+  //     reader.onload = (e) => this.loadImage(e.target.result)
+  //     reader.readAsDataURL(file)
+  //   }
+  // }
 
   setCanvas (canvas) {
     this.canvas = canvas
