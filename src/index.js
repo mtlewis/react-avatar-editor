@@ -169,16 +169,14 @@ class AvatarEditor extends React.Component {
 
   getImage () {
     // get relative coordinates (0 to 1)
-    const relativeCropRect = this.getCroppingRect()
+    const cropRect = this.getCroppingRect()
     const image = this.state.image
 
     // get actual pixel coordinates
-    const cropRect = {
-      x: relativeCropRect.x * image.resource.width,
-      y: relativeCropRect.y * image.resource.height,
-      width: relativeCropRect.width * image.resource.width,
-      height: relativeCropRect.height * image.resource.height
-    }
+    cropRect.x *= image.resource.width
+    cropRect.y *= image.resource.height
+    cropRect.width *= image.resource.width
+    cropRect.height *= image.resource.height
 
     // create a canvas with the correct dimensions
     const canvas = document.createElement('canvas')
@@ -336,7 +334,7 @@ class AvatarEditor extends React.Component {
     let image = this.state.image;
 
     if (image.resource) {
-      const imagePosition = this.calculateImagePosition(image, border)
+      const position = this.calculatePosition(image, border)
 
       context.save()
 
@@ -345,13 +343,13 @@ class AvatarEditor extends React.Component {
       context.translate(-(context.canvas.width / 2), -(context.canvas.height / 2));
 
       context.globalCompositeOperation = 'destination-over'
-      context.drawImage(image.resource, imagePosition.x, imagePosition.y, imagePosition.width, imagePosition.height)
+      context.drawImage(image.resource, position.x, position.y, position.width, position.height)
 
       context.restore()
     }
   }
 
-  calculateImagePosition (image, border) {
+  calculatePosition (image, border) {
     image = image || this.state.image
     const dimensions = this.getDimensions()
 
@@ -420,7 +418,6 @@ class AvatarEditor extends React.Component {
 
   handleMouseMove (e) {
     e = e || window.event
-
     if (this.state.drag === false) {
       return
     }
