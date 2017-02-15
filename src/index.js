@@ -79,23 +79,21 @@ class AvatarEditor extends React.Component {
     borderRadius: React.PropTypes.number,
     width: React.PropTypes.number,
     height: React.PropTypes.number,
-    croppingRect: React.PropTypes.shape({
+    position: React.PropTypes.shape({
         x: React.PropTypes.number,
-        y: React.PropTypes.number,
-        width: React.PropTypes.number,
-        height: React.PropTypes.number
+        y: React.PropTypes.number
     }),
     color: React.PropTypes.arrayOf(React.PropTypes.number),
     style: React.PropTypes.object,
 
-    onCroppingRectChange: React.PropTypes.func,
     onDropFile: React.PropTypes.func,
     onLoadFailure: React.PropTypes.func,
     onLoadSuccess: React.PropTypes.func,
     onImageReady: React.PropTypes.func,
     onImageChange: React.PropTypes.func,
     onMouseUp: React.PropTypes.func,
-    onMouseMove: React.PropTypes.func
+    onMouseMove: React.PropTypes.func,
+    onPositionChange: React.PropTypes.func
   }
 
   static defaultProps = {
@@ -107,14 +105,14 @@ class AvatarEditor extends React.Component {
     height: 200,
     color: [0, 0, 0, 0.5],
     style: {},
-    onCroppingRectChange () {},
     onDropFile () {},
     onLoadFailure () {},
     onLoadSuccess () {},
     onImageReady () {},
     onImageChange () {},
     onMouseUp () {},
-    onMouseMove () {}
+    onMouseMove () {},
+    onPositionChange () {}
   }
 
   constructor (props) {
@@ -213,14 +211,6 @@ class AvatarEditor extends React.Component {
     return canvas
   }
 
-  getScale() {
-     if (!this.props.croppingRect) {
-       return this.props.scale
-     }
-
-     return 1 / this.props.croppingRect.height
-  }
-
   getXScale() {
     let canvasAspect = this.props.width / this.props.height
     let imageAspect = this.state.image.width / this.state.image.height
@@ -236,9 +226,11 @@ class AvatarEditor extends React.Component {
   }
 
   getCroppingRect () {
-    let croppingRect = this.props.croppingRect || {
-      x: this.state.position.x - (0.5 / this.props.scale),
-      y: this.state.position.y - (0.5 / this.props.scale),
+    let position = this.props.position || this.state.position;
+
+    let croppingRect = {
+      x: position.x - (0.5 / this.props.scale),
+      y: position.y - (0.5 / this.props.scale),
       width: (1 / this.props.scale) * this.getXScale(),
       height: (1 / this.props.scale) * this.getYScale()
     };
@@ -302,7 +294,7 @@ class AvatarEditor extends React.Component {
     this.paintImage(context, this.props.border)
 
     if (prevProps.image !== this.props.image ||
-        prevProps.croppingRect !== this.props.croppingRect ||
+        prevProps.position !== this.props.position ||
         prevProps.scale !== this.props.scale ||
         prevProps.rotate !== this.props.rotate ||
         prevState.my !== this.state.my ||
@@ -374,8 +366,8 @@ class AvatarEditor extends React.Component {
 
     const croppingRect = this.getCroppingRect()
 
-    const width = image.width * this.getScale()
-    const height = image.height * this.getScale()
+    const width = image.width * this.props.scale
+    const height = image.height * this.props.scale
 
     const x = border - croppingRect.x * width
     const y = border - croppingRect.y * height
@@ -489,20 +481,14 @@ class AvatarEditor extends React.Component {
       const width = this.state.image.width / lastCroppingRect.width
       const height = this.state.image.height / lastCroppingRect.height
 
-      const imageTopLeft = {
-          x: ((lastCroppingRect.x * width) - x) / width,
-          y: ((lastCroppingRect.y * height) - y) / height
+      const position = {
+          x: (((lastCroppingRect.x * width) - x) / width) + (0.5 / this.props.scale),
+          y: (((lastCroppingRect.y * height) - y) / height) + (0.5 / this.props.scale)
       }
 
-      this.props.onCroppingRectChange({
-        ...lastCroppingRect,
-        ...imageTopLeft
-      })
+      this.props.onPositionChange(position)
 
-      newState.position = {
-          x: imageTopLeft.x + (0.5 / this.props.scale),
-          y: imageTopLeft.y + (0.5 / this.props.scale)
-      }
+      newState.position = position
     }
 
     this.setState(newState)
