@@ -122,7 +122,6 @@ class AvatarEditor extends React.Component {
     this.handleMouseMove = ::this.handleMouseMove
     this.handleMouseDown = ::this.handleMouseDown
     this.handleMouseUp = ::this.handleMouseUp
-    this.handleMouseMove = ::this.handleMouseMove
     this.handleDragOver = ::this.handleDragOver
     this.handleDrop = ::this.handleDrop
   }
@@ -131,8 +130,7 @@ class AvatarEditor extends React.Component {
     drag: false,
     my: null,
     mx: null,
-    image: {},
-    position: {
+    image: {
       x: 0.5,
       y: 0.5
     }
@@ -226,7 +224,7 @@ class AvatarEditor extends React.Component {
   }
 
   getCroppingRect () {
-    let position = this.props.position || this.state.position;
+    let position = this.props.position || { x: this.state.image.x, y: this.state.image.y };
 
     let croppingRect = {
       x: position.x - (0.5 / this.props.scale),
@@ -299,8 +297,8 @@ class AvatarEditor extends React.Component {
         prevProps.rotate !== this.props.rotate ||
         prevState.my !== this.state.my ||
         prevState.mx !== this.state.mx ||
-        prevState.position.x !== this.state.position.x ||
-        prevState.position.y !== this.state.position.y) {
+        prevState.image.x !== this.state.image.x ||
+        prevState.image.y !== this.state.image.y) {
       this.props.onImageChange()
     }
   }
@@ -308,8 +306,9 @@ class AvatarEditor extends React.Component {
   handleImageReady (image) {
     const imageState = this.getInitialSize(image.width, image.height)
     imageState.resource = image
-
-    this.setState({ drag: false, firstLoad: false, image: imageState, position: { x: 0.5, y: 0.5 } }, this.props.onImageReady)
+    imageState.x = 0.5;
+    imageState.y = 0.5;
+    this.setState({ drag: false, image: imageState }, this.props.onImageReady)
     this.props.onLoadSuccess(imageState)
   }
 
@@ -416,7 +415,6 @@ class AvatarEditor extends React.Component {
       my: null
     })
   }
-
   handleMouseUp () {
     if (this.state.drag) {
       this.setState({ drag: false })
@@ -448,12 +446,19 @@ class AvatarEditor extends React.Component {
       const mx = this.state.mx - mousePositionX
       const my = this.state.my - mousePositionY
 
-      const lastCroppingRect = this.getCroppingRect(),
-        lastX = lastCroppingRect.x,
-        lastY = lastCroppingRect.y;
+      const width = this.state.image.width * this.props.scale
+      const height = this.state.image.height * this.props.scale
 
-      const xDiff = (rotate === 0 || rotate === 180 ? mx : my)
-      const yDiff = (rotate === 0 || rotate === 180 ? my : mx)
+      let {
+        x: lastX,
+        y: lastY
+      } = this.getCroppingRect()
+
+      lastX *= width
+      lastY *= height
+
+      const xDiff = (rotate === 0 || rotate === 180 ? mx : my) / this.props.scale
+      const yDiff = (rotate === 0 || rotate === 180 ? my : mx) / this.props.scale
 
       let y
       let x
@@ -478,17 +483,17 @@ class AvatarEditor extends React.Component {
         x = lastX + xDiff
       }
 
-      const width = this.state.image.width / lastCroppingRect.width
-      const height = this.state.image.height / lastCroppingRect.height
-
       const position = {
-          x: (((lastCroppingRect.x * width) - x) / width) + (0.5 / this.props.scale),
-          y: (((lastCroppingRect.y * height) - y) / height) + (0.5 / this.props.scale)
+          x: (x / width) + (0.5 / this.props.scale),
+          y: (y / height) + (0.5 / this.props.scale)
       }
 
       this.props.onPositionChange(position)
 
-      newState.position = position
+      newState.image = {
+        ...this.state.image,
+        ...position
+      }
     }
 
     this.setState(newState)
