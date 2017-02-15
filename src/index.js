@@ -224,13 +224,15 @@ class AvatarEditor extends React.Component {
   }
 
   getCroppingRect () {
-    let position = this.props.position || { x: this.state.image.x, y: this.state.image.y };
+    let position = this.props.position || { x: this.state.image.x, y: this.state.image.y },
+        width = (1 / this.props.scale) * this.getXScale(),
+        height = (1 / this.props.scale) * this.getYScale()
 
     let croppingRect = {
-      x: position.x - (0.5 / this.props.scale),
-      y: position.y - (0.5 / this.props.scale),
-      width: (1 / this.props.scale) * this.getXScale(),
-      height: (1 / this.props.scale) * this.getYScale()
+      x: position.x - (width / 2),
+      y: position.y - (height / 2),
+      width,
+      height
     };
 
     return {
@@ -455,35 +457,38 @@ class AvatarEditor extends React.Component {
       lastX *= width
       lastY *= height
 
-      const xDiff = (rotate === 0 || rotate === 180 ? mx : my) / this.props.scale
-      const yDiff = (rotate === 0 || rotate === 180 ? my : mx) / this.props.scale
+      const xDiff = (rotate === 0 || rotate === 180 ? mx : my) // / this.props.scale
+      const yDiff = (rotate === 0 || rotate === 180 ? my : mx) // / this.props.scale
 
       let y
       let x
 
       if (rotate === 0) {
-        y = lastY - yDiff
-        x = lastX - xDiff
+        y = lastY + yDiff
+        x = lastX + xDiff
       }
 
       if (rotate === 90) {
-        y = lastY + yDiff
-        x = lastX - xDiff
-      }
-
-      if (rotate === 180) {
-        y = lastY + yDiff
-        x = lastX + xDiff
-      }
-
-      if (rotate === 270) {
         y = lastY - yDiff
         x = lastX + xDiff
       }
 
+      if (rotate === 180) {
+        y = lastY - yDiff
+        x = lastX - xDiff
+      }
+
+      if (rotate === 270) {
+        y = lastY + yDiff
+        x = lastX - xDiff
+      }
+
+      let relativeWidth = (1 / this.props.scale) * this.getXScale()
+      let relativeHeight = (1 / this.props.scale) * this.getYScale()
+
       const position = {
-          x: (x / width) + (0.5 / this.props.scale),
-          y: (y / height) + (0.5 / this.props.scale)
+          x: (x / width) + (relativeWidth / 2),
+          y: (y / height) + (relativeHeight / 2)
       }
 
       this.props.onPositionChange(position)
