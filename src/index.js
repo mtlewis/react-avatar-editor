@@ -213,15 +213,34 @@ class AvatarEditor extends React.Component {
     return canvas
   }
 
-  getCroppingRect () {
-    let xAspect = Math.max(1, this.state.image.width / this.state.image.height);
-    let yAspect = Math.max(1, this.state.image.height / this.state.image.width);
+  getScale() {
+     if (!this.props.croppingRect) {
+       return this.props.scale
+     }
 
+     return 1 / this.props.croppingRect.height
+  }
+
+  getXScale() {
+    let canvasAspect = this.props.width / this.props.height
+    let imageAspect = this.state.image.width / this.state.image.height
+
+    return Math.min(1, canvasAspect / imageAspect)
+  }
+
+  getYScale() {
+    let canvasAspect = this.props.height / this.props.width
+    let imageAspect = this.state.image.height / this.state.image.width
+
+    return Math.min(1, canvasAspect / imageAspect)
+  }
+
+  getCroppingRect () {
     let croppingRect = this.props.croppingRect || {
-        x: this.state.position.x - (0.5 / this.props.scale),
-        y: this.state.position.y - (0.5 / this.props.scale),
-        width: 1 / this.props.scale / xAspect,
-        height: 1 / this.props.scale / yAspect
+      x: this.state.position.x - (0.5 / this.props.scale),
+      y: this.state.position.y - (0.5 / this.props.scale),
+      width: (1 / this.props.scale) * this.getXScale(),
+      height: (1 / this.props.scale) * this.getYScale()
     };
 
     return {
@@ -355,11 +374,8 @@ class AvatarEditor extends React.Component {
 
     const croppingRect = this.getCroppingRect()
 
-    const xAspect = Math.max(image.width / image.height, 1)
-    const yAspect = Math.max(image.height / image.width, 1)
-
-    const width = image.width / croppingRect.width / xAspect
-    const height = image.height / croppingRect.height / yAspect
+    const width = image.width * this.getScale()
+    const height = image.height * this.getScale()
 
     const x = border - croppingRect.x * width
     const y = border - croppingRect.y * height
