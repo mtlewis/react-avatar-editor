@@ -357,9 +357,12 @@ class AvatarEditor extends React.Component {
 
       context.save()
 
-      context.translate((context.canvas.width / 2), (context.canvas.height / 2));
+      const xOrigin = position.x + (context.canvas.width / 2)
+      const yOrigin = position.y + (context.canvas.height / 2)
+
+      context.translate(xOrigin, yOrigin)
       context.rotate((this.props.rotate * Math.PI / 180))
-      context.translate(-(context.canvas.width / 2), -(context.canvas.height / 2));
+      context.translate(-xOrigin, -yOrigin)
 
       context.globalCompositeOperation = 'destination-over'
       context.drawImage(image.resource, position.x, position.y, position.width, position.height)
