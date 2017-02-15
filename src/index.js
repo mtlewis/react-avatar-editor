@@ -131,7 +131,6 @@ class AvatarEditor extends React.Component {
 
   state = {
     drag: false,
-    firstLoad: true,
     my: null,
     mx: null,
     image: {},
@@ -217,11 +216,6 @@ class AvatarEditor extends React.Component {
   }
 
   getCroppingRect () {
-    // const widthDiff = (width - dimensions.width) / 2
-    // const heightDiff = (height - dimensions.height) / 2
-    // x = image.x * this.props.scale - widthDiff + border
-    // y = image.y * this.props.scale - heightDiff + border
-
     let xAspect = Math.max(1, this.state.image.width / this.state.image.height);
     let yAspect = Math.max(1, this.state.image.height / this.state.image.width);
 
@@ -234,10 +228,8 @@ class AvatarEditor extends React.Component {
 
     return {
       ...croppingRect,
-    //   x: Math.max(0, Math.min(croppingRect.x, ((1 - croppingRect.width) / xAspect) + (xAspect - 1))),
       x: Math.max(0, Math.min(croppingRect.x, 1 - croppingRect.width)),
       y: Math.max(0, Math.min(croppingRect.y, 1 - croppingRect.height))
-    //   y: Math.max(0, Math.min(croppingRect.y, ((1 - croppingRect.height) / yAspect) + (yAspect -1)))
     }
   }
 
@@ -455,8 +447,8 @@ class AvatarEditor extends React.Component {
         lastX = lastCroppingRect.x,
         lastY = lastCroppingRect.y;
 
-      const xDiff = (rotate === 0 || rotate === 180 ? mx : my) // / lastCroppingRect.width
-      const yDiff = (rotate === 0 || rotate === 180 ? my : mx) // / lastCroppingRect.height
+      const xDiff = (rotate === 0 || rotate === 180 ? mx : my)
+      const yDiff = (rotate === 0 || rotate === 180 ? my : mx)
 
       let y
       let x
