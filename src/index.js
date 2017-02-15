@@ -136,6 +136,10 @@ class AvatarEditor extends React.Component {
     }
   }
 
+  isVertical () {
+      return this.props.rotate % 180 !== 0
+  }
+
   getDimensions () {
     const { width, height, rotate, border } = this.props
 
@@ -144,9 +148,7 @@ class AvatarEditor extends React.Component {
     const canvasWidth = width + (border * 2);
     const canvasHeight = height + (border * 2);
 
-    const vertical = rotate % 180 !== 0
-
-    if (vertical) {
+    if (this.isVertical()) {
       canvas.width = canvasHeight;
       canvas.height = canvasWidth;
     } else {
@@ -176,8 +178,15 @@ class AvatarEditor extends React.Component {
 
     // create a canvas with the correct dimensions
     const canvas = document.createElement('canvas')
-    canvas.width = cropRect.width
-    canvas.height = cropRect.height
+
+    if (this.isVertical()) {
+      canvas.width = cropRect.height
+      canvas.height = cropRect.width
+    } else {
+      canvas.width = cropRect.width
+      canvas.height = cropRect.height
+    }
+
 
     // draw the full-size image at the correct position,
     // the image gets truncated to the size of the canvas.
@@ -368,8 +377,8 @@ class AvatarEditor extends React.Component {
     const width = image.width * this.props.scale
     const height = image.height * this.props.scale
 
-    const x = border - croppingRect.x * width
-    const y = border - croppingRect.y * height
+    const x = border - (croppingRect.x * width)
+    const y = border - (croppingRect.y * height)
 
     return {
       x,
