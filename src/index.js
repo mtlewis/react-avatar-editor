@@ -204,7 +204,7 @@ class AvatarEditor extends React.Component {
     canvas.height = height
 
     // don't paint a border here, as it is the resulting image
-    this.paintImage(canvas.getContext('2d'), 0)
+    this.paintImage(canvas.getContext('2d'), this.state.image, 0)
 
     return canvas
   }
@@ -289,7 +289,7 @@ class AvatarEditor extends React.Component {
     const context = ReactDOM.findDOMNode(this.canvas).getContext('2d')
     context.clearRect(0, 0, this.getDimensions().canvas.width, this.getDimensions().canvas.height)
     this.paint(context)
-    this.paintImage(context, this.props.border)
+    this.paintImage(context, this.state.image, this.props.border)
 
     if (prevProps.image !== this.props.image ||
         prevProps.position !== this.props.position ||
@@ -340,9 +340,7 @@ class AvatarEditor extends React.Component {
     }
   }
 
-  paintImage (context, border) {
-    let image = this.state.image;
-
+  paintImage (context, image, border) {
     if (image.resource) {
       const position = this.calculatePosition(image, border)
 
