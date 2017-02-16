@@ -473,8 +473,8 @@ class AvatarEditor extends React.Component {
       lastX *= width
       lastY *= height
 
-      const xDiff = (rotate === 0 || rotate === 180 ? mx : my) // / this.props.scale
-      const yDiff = (rotate === 0 || rotate === 180 ? my : mx) // / this.props.scale
+      const xDiff = (rotate === 0 || rotate === 180 ? mx : my)
+      const yDiff = (rotate === 0 || rotate === 180 ? my : mx)
 
       let y
       let x
