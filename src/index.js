@@ -361,9 +361,9 @@ class AvatarEditor extends React.Component {
 
       context.save()
 
-      context.translate(context.canvas.width / 2, context.canvas.height / 2)
+      context.translate((context.canvas.width / 2), (context.canvas.height / 2));
       context.rotate((this.props.rotate * Math.PI / 180))
-      context.translate(-(context.canvas.width / 2), -(context.canvas.height / 2))
+      context.translate(-(context.canvas.width / 2), -(context.canvas.height / 2));
 
       if (this.isVertical()) {
           context.translate((context.canvas.width - context.canvas.height) / 2, (context.canvas.height - context.canvas.width) / 2)
