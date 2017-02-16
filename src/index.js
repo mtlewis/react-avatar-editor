@@ -196,6 +196,10 @@ class AvatarEditor extends React.Component {
     context.rotate((this.props.rotate * Math.PI / 180))
     context.translate(-(canvas.width / 2), -(canvas.height / 2));
 
+    if (this.isVertical()) {
+        context.translate((canvas.width - canvas.height) / 2, (canvas.height - canvas.width) / 2)
+    }
+
     context.drawImage(image.resource, -cropRect.x, -cropRect.y)
 
     return canvas
@@ -357,12 +361,13 @@ class AvatarEditor extends React.Component {
 
       context.save()
 
-      const xOrigin = position.x + (context.canvas.width / 2)
-      const yOrigin = position.y + (context.canvas.height / 2)
-
-      context.translate(xOrigin, yOrigin)
+      context.translate(context.canvas.width / 2, context.canvas.height / 2)
       context.rotate((this.props.rotate * Math.PI / 180))
-      context.translate(-xOrigin, -yOrigin)
+      context.translate(-(context.canvas.width / 2), -(context.canvas.height / 2))
+
+      if (this.isVertical()) {
+          context.translate((context.canvas.width - context.canvas.height) / 2, (context.canvas.height - context.canvas.width) / 2)
+      }
 
       context.globalCompositeOperation = 'destination-over'
       context.drawImage(image.resource, position.x, position.y, position.width, position.height)
@@ -373,7 +378,6 @@ class AvatarEditor extends React.Component {
 
   calculatePosition (image, border) {
     image = image || this.state.image
-    const dimensions = this.getDimensions()
 
     const croppingRect = this.getCroppingRect()
 
